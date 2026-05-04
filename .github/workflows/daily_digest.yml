@@ -1,0 +1,22 @@
+name: Daily News Digest
+
+on:
+  schedule:
+    - cron: '0 22 * * *'  # 한국시간 오전 7시
+  workflow_dispatch:        # 수동 실행 가능
+
+jobs:
+  send-digest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      - run: pip install feedparser openai
+      - run: python news_digest.py
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          SENDER_EMAIL:   ${{ secrets.SENDER_EMAIL }}
+          SENDER_APP_PW:  ${{ secrets.SENDER_APP_PW }}
+          RECEIVER_EMAIL: ${{ secrets.RECEIVER_EMAIL }}
