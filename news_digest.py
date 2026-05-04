@@ -2,9 +2,9 @@
 Morning News Digest — AI/Tech & Market Daily Brief
 ----------------------------------------------------
 매일 아침 AI/테크 트렌드 + 주식/시장 뉴스를 수집하고
-Claude API로 요약해서 이메일로 발송하는 자동화 스크립트
+GPT API로 요약해서 이메일로 발송하는 자동화 스크립트
 
-포트폴리오: github.com/YOUR_ID/morning-news-digest
+포트폴리오: github.com/hwangninnoo/morning-news-digest
 """
 
 import feedparser
@@ -13,15 +13,15 @@ import os
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from datetime import datetime
-import anthropic
+from openai import OpenAI
 
 # ─────────────────────────────────────────────
 # 설정 (환경변수로 관리 — 코드에 직접 넣지 말 것!)
 # ─────────────────────────────────────────────
-ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY")   # Claude API 키
-SENDER_EMAIL      = os.environ.get("SENDER_EMAIL")         # 발신 Gmail 주소
-SENDER_APP_PW     = os.environ.get("SENDER_APP_PW")        # Gmail 앱 비밀번호
-RECEIVER_EMAIL    = os.environ.get("RECEIVER_EMAIL")       # 수신 이메일 주소
+OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")         # OpenAI API 키
+SENDER_EMAIL   = os.environ.get("SENDER_EMAIL")            # 발신 Gmail 주소
+SENDER_APP_PW  = os.environ.get("SENDER_APP_PW")           # Gmail 앱 비밀번호
+RECEIVER_EMAIL = os.environ.get("RECEIVER_EMAIL")          # 수신 이메일 주소
 
 
 # ─────────────────────────────────────────────
@@ -72,11 +72,11 @@ def fetch_news(feeds: dict, max_per_category: int = 5) -> dict:
 
 
 # ─────────────────────────────────────────────
-# 2. Claude API로 뉴스 요약
+# 2. GPT API로 뉴스 요약
 # ─────────────────────────────────────────────
-def summarize_with_claude(news_data: dict) -> dict:
-    """카테고리별 기사 목록을 Claude로 요약합니다."""
-    client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
+def summarize_with_gpt(news_data: dict) -> dict:
+    """카테고리별 기사 목록을 GPT로 요약합니다."""
+    client = OpenAI(api_key=OPENAI_API_KEY)
     summaries = {}
 
     for category, articles in news_data.items():
@@ -104,12 +104,12 @@ def summarize_with_claude(news_data: dict) -> dict:
 간결하고 인사이트 있게 작성해주세요. 전문 용어는 유지하되 핵심만 담아주세요."""
 
         try:
-            response = client.messages.create(
-                model="claude-opus-4-5",
+            response = client.chat.completions.create(
+                model="gpt-4o-mini",  # 빠르고 저렴한 모델
                 max_tokens=600,
                 messages=[{"role": "user", "content": prompt}]
             )
-            summaries[category] = response.content[0].text
+            summaries[category] = response.choices[0].message.content
         except Exception as e:
             summaries[category] = f"요약 생성 중 오류 발생: {e}"
 
@@ -188,8 +188,8 @@ def build_email_html(news_data: dict, summaries: dict) -> str:
         <!-- 푸터 -->
         <div style="border-top:1px solid #eee;padding-top:16px;margin-top:8px;">
             <p style="font-size:11px;color:#aaa;margin:0;">
-                🤖 이 메일은 Python + Claude API로 자동 생성되었습니다.<br>
-                github.com/YOUR_ID/morning-news-digest
+                🤖 이 메일은 Python + GPT API로 자동 생성되었습니다.<br>
+                github.com/hwangninnoo/morning-news-digest
             </p>
         </div>
 
@@ -232,8 +232,8 @@ def main():
     total = sum(len(v) for v in news_data.values())
     print(f"[{datetime.now().strftime('%H:%M:%S')}] 총 {total}개 기사 수집 완료")
 
-    print(f"[{datetime.now().strftime('%H:%M:%S')}] Claude로 요약 중...")
-    summaries = summarize_with_claude(news_data)
+    print(f"[{datetime.now().strftime('%H:%M:%S')}] GPT로 요약 중...")
+    summaries = summarize_with_gpt(news_data)
 
     print(f"[{datetime.now().strftime('%H:%M:%S')}] 이메일 생성 및 발송 중...")
     html_body = build_email_html(news_data, summaries)
